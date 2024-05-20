@@ -4,7 +4,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
-// import 'package:image_picker_web/image_picker_web.dart';
+import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class OCRScreen extends StatefulWidget {
   const OCRScreen({Key? key}) : super(key: key);
@@ -17,7 +18,7 @@ class _OCRScreenState extends State<OCRScreen> {
   bool textScanning = false;
   FlutterTts flutterTts = FlutterTts();
 
-  //mobile
+  // Mobile
   XFile? imageFile;
 
   String scannedText = "";
@@ -26,6 +27,18 @@ class _OCRScreenState extends State<OCRScreen> {
     flutterTts.setPitch(1);
     flutterTts.speak(text);
     flutterTts.setSpeechRate(0.6);
+  }
+
+  void copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    Fluttertoast.showToast(
+      msg: 'Text copied to clipboard',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black54,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
   }
 
   @override
@@ -128,13 +141,22 @@ class _OCRScreenState extends State<OCRScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
+                if (scannedText.isNotEmpty)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => copyToClipboard(scannedText),
+                        child: const Text("Copy Text"),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 20),
                 Text(
                   scannedText,
                   style: const TextStyle(fontSize: 20),
-                )
+                ),
               ],
             ),
           ),
@@ -145,7 +167,7 @@ class _OCRScreenState extends State<OCRScreen> {
 
   void getImage(ImageSource source) async {
     try {
-      //MOBILE
+      // Mobile
       final pickedImage = await ImagePicker().pickImage(source: source);
       if (pickedImage != null) {
         textScanning = true;
@@ -156,14 +178,13 @@ class _OCRScreenState extends State<OCRScreen> {
     } catch (e) {
       textScanning = false;
       imageFile = null;
-      scannedText = "Error occured while scanning";
+      scannedText = "Error occurred while scanning";
       setState(() {});
     }
   }
 
   void getRecognisedText(XFile image) async {
     final inputImage = InputImage.fromFilePath(image.path);
-    // final textDetector = GoogleMlKit.vision.textRecognizer();
     var textRecognizer = TextRecognizer();
     RecognizedText recognisedText =
         await textRecognizer.processImage(inputImage);
@@ -172,11 +193,11 @@ class _OCRScreenState extends State<OCRScreen> {
     for (TextBlock block in recognisedText.blocks) {
       for (TextLine line in block.lines) {
         scannedText = "$scannedText${line.text}\n";
-        speak(scannedText);
       }
     }
     textScanning = false;
     setState(() {});
+    speak(scannedText);
   }
 
   @override
@@ -186,7 +207,6 @@ class _OCRScreenState extends State<OCRScreen> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     flutterTts.stop();
   }
